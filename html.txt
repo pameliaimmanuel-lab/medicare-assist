@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Adherence Platform</title>
+  </head>
+  <body>
+    <h1>Patient Adherence Monitoring System</h1>
+    <p>Backend code is in the repository. Run locally:</p>
+    <code>pip install fastapi uvicorn && uvicorn main:app --reload</code>
+  </body>
+</html>
