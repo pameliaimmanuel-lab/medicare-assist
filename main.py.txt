@@ -1,0 +1,59 @@
+# main.py
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from database import SessionLocal, Base, engine
+from models import Patient, Medication, Dose, Appointment
+from schemas import (
+    Patient as PatientSchema,
+    PatientCreate,
+    MedicationCreate,
+    DoseCreate,
+    AppointmentCreate,
+)
+from crud import create_patient, create_medication, create_dose, create_appointment
+from adherence_engine import update_patient_risk_level
+from interventions import generate_interventions
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.post("/patients/", response_model=PatientSchema)
+def add_patient(patient: PatientCreate, db: Session = Depends(get_db)):
+    return create_patient(db, patient)
+
+@app.post("/medications/", status_code=201)
+def add_medication(med: MedicationCreate, db: Session = Depends(get_db)):
+    created = create_medication(db, med)
+    update_patient_risk_level(db, created.patient_id)
+    return created
+
+@app.post("/doses/", status_code=201)
+def log_dose(dose: DoseCreate, db: Session = Depends(get_db)):
+    created = create_dose(db, dose)
+    medication = db.query(Medication).filter(Medication.id == dose.medication_id).first()
+    if medication:
+        update_patient_risk_level(db, medication.patient_id)
+    return created
+
+@app.post("/appointments/", status_code=201)
+def add_appointment(appt: AppointmentCreate, db: Session = Depends(get_db)):
+    created = create_appointment(db, appt)
+    update_patient_risk_level(db, created.patient_id)
+    return created
+
+@app.get("/patients/{patient_id}/interventions")
+def get_interventions(patient_id: int, db: Session = Depends(get_db)):
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    update_patient_risk_level(db, patient_id)
+    intervention = generate_interventions(db, patient)
+    return {"patient_id": patient_id, "risk_level": patient.risk_level, "messages": intervention.messages}

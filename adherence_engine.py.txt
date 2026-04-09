@@ -1,0 +1,37 @@
+# adherence_engine.py
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from models import Medication, Dose, Appointment
+
+def compute_medication_score(db: Session, medication_id: int) -> float:
+    doses = db.query(Dose).filter(Dose.medication_id == medication_id).all()
+    if not doses:
+        return 0.0
+    total = len(doses)
+    taken = sum(1 for d in doses if d.taken)
+    return float(taken) / total
+
+def compute_appointment_score(db: Session, patient_id: int) -> float:
+    appts = db.query(Appointment).filter(Appointment.patient_id == patient_id).all()
+    if not appts:
+        return 0.0
+    total = len(appts)
+    attended = sum(1 for a in appts if a.attended)
+    return float(attended) / total
+
+def update_patient_risk_level(db: Session, patient_id: int):
+    meds = db.query(Medication).filter(Medication.patient_id == patient_id).all()
+    med_scores = [
+        compute_medication_score(db, med.id)
+        for med in meds
+    ]
+    appt_score = compute_appointment_score(db, patient_id)
+
+    med_avg = sum(med_scores) / len(med_scores) if med_scores else 1.0
+    overall = (med_avg + appt_score) / 2.0
+
+    risk = "high" if overall < 0.7 else "medium" if overall < 0.9 else "low"
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if patient:
+        patient.risk_level = risk
+        db.commit()

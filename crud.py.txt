@@ -1,0 +1,44 @@
+# crud.py
+from sqlalchemy.orm import Session
+from models import Patient, Medication, Dose, Appointment
+from schemas import (
+    PatientCreate,
+    MedicationCreate,
+    DoseCreate,
+    AppointmentCreate,
+)
+
+def get_patient(db: Session, patient_id: int):
+    return db.query(Patient).filter(Patient.id == patient_id).first()
+
+def create_patient(db: Session, patient: PatientCreate):
+    db_patient = Patient(**patient.dict())
+    db.add(db_patient)
+    db.commit()
+    db.refresh(db_patient)
+    return db_patient
+
+def create_medication(db: Session, med: MedicationCreate):
+    db_med = Medication(**med.dict())
+    db.add(db_med)
+    db.commit()
+    db.refresh(db_med)
+    return db_med
+
+def create_dose(db: Session, dose: DoseCreate):
+    db_dose = Dose(
+        scheduled_time=dose.scheduled_time,
+        taken=dose.taken,
+        medication_id=dose.medication_id
+    )
+    db.add(db_dose)
+    db.commit()
+    db.refresh(db_dose)
+    return db_dose
+
+def create_appointment(db: Session, appt: AppointmentCreate):
+    db_appt = Appointment(**appt.dict())
+    db.add(db_appt)
+    db.commit()
+    db.refresh(db_appt)
+    return db_appt

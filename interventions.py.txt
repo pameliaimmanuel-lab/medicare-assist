@@ -1,0 +1,42 @@
+# interventions.py
+from typing import List
+from models import Patient, Medication, Dose
+from datetime import datetime, timedelta
+
+class Intervention:
+    def __init__(self, patient: Patient, messages: List[str]):
+        self.patient = patient
+        self.messages = messages
+
+def generate_interventions(db, patient: Patient) -> Intervention:
+    messages = []
+    meds = db.query(Medication).filter(Medication.patient_id == patient.id).all()
+
+    now = datetime.utcnow()
+    upcoming = []
+
+    for med in meds:
+        pending_doses = (
+            db.query(Dose)
+            .filter(Dose.medication_id == med.id)
+            .filter(Dose.taken == False)
+            .filter(Dose.scheduled_time <= now + timedelta(minutes=10))  # about to be missed
+            .all()
+        )
+        if pending_doses:
+            upcoming.append(f"{med.name} due soon (dose at {pending_doses[0].scheduled_time}).")
+
+    if upcoming:
+        messages.append("REMINDER: Upcoming doses: " + "; ".join(upcoming))
+
+    if patient.risk_level == "high":
+        messages.append(
+            "WARNING: High non‑adherence risk. "
+            "Care team will be notified to follow up."
+        )
+    elif patient.risk_level == "medium":
+        messages.append(
+            "TIP: Try aligning doses with daily routines (e.g., after brushing)."
+        )
+
+    return Intervention(patient, messages)

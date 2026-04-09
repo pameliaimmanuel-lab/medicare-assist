@@ -1,0 +1,62 @@
+# schemas.py
+from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional, List
+
+class PatientBase(BaseModel):
+    name: str
+    email: str
+    phone: Optional[str] = None
+
+class PatientCreate(PatientBase):
+    pass
+
+class Patient(PatientBase):
+    id: int
+    risk_level: str
+    class Config:
+        from_attributes = True
+
+class MedicationBase(BaseModel):
+    name: str
+    dose: str
+    frequency_hours: int
+    start_date: datetime
+    end_date: Optional[datetime] = None
+
+class MedicationCreate(MedicationBase):
+    patient_id: int
+
+class Medication(MedicationBase):
+    id: int
+    patient_id: int
+    class Config:
+        from_attributes = True
+
+class DoseBase(BaseModel):
+    scheduled_time: datetime
+    taken: bool
+
+class DoseCreate(DoseBase):
+    medication_id: int
+
+class Dose(DoseBase):
+    id: int
+    medication_id: int
+    taken_time: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
+class AppointmentBase(BaseModel):
+    title: str
+    scheduled_at: datetime
+    attended: bool
+
+class AppointmentCreate(AppointmentBase):
+    patient_id: int
+
+class Appointment(AppointmentBase):
+    id: int
+    patient_id: int
+    class Config:
+        from_attributes = True

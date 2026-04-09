@@ -1,0 +1,48 @@
+# models.py
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Float
+from sqlalchemy.orm import relationship
+from database import Base
+
+class Patient(Base):
+    __tablename__ = "patients"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    email = Column(String, unique=True, index=True)
+    phone = Column(String)
+    risk_level = Column(String, default="low")  # low, medium, high
+
+    medications = relationship("Medication", back_populates="patient")
+    appointments = relationship("Appointment", back_populates="patient")
+
+class Medication(Base):
+    __tablename__ = "medications"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    dose = Column(String)
+    frequency_hours = Column(Integer)  # e.g., 24 = once daily
+    start_date = Column(DateTime)
+    end_date = Column(DateTime, nullable=True)
+    patient_id = Column(Integer, ForeignKey("patients.id"))
+
+    patient = relationship("Patient", back_populates="medications")
+    doses = relationship("Dose", back_populates="medication")
+
+class Dose(Base):
+    __tablename__ = "doses"
+    id = Column(Integer, primary_key=True, index=True)
+    scheduled_time = Column(DateTime)  # when should be taken
+    taken_time = Column(DateTime, nullable=True)
+    taken = Column(Boolean, default=False)
+    medication_id = Column(Integer, ForeignKey("medications.id"))
+
+    medication = relationship("Medication", back_populates="doses")
+
+class Appointment(Base):
+    __tablename__ = "appointments"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    scheduled_at = Column(DateTime)
+    attended = Column(Boolean, default=False)
+    patient_id = Column(Integer, ForeignKey("patients.id"))
+
+    patient = relationship("Patient", back_populates="appointments")
